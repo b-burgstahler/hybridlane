@@ -1,0 +1,3 @@
+[submodule "src/qcvdv"]
+	path = src/qcvdv
+	url = git@github.com:srikarchundury/qcvdv.git

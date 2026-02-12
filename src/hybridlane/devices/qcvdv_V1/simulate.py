@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import warnings
+
+import numpy as np
+from pennylane.tape import QuantumScript
+from scipy.sparse import SparseEfficiencyWarning
+
+from qcvdv.python.circuit import from_CVCircuit
+from qcvdv.python.simulator import HybridSimulator
+
+from ...measurements import FockTruncation, StateMeasurement
+from ..bosonic_qiskit.simulate import analytic_measurement, make_cv_circuit
+
+
+def simulate(
+    tape: QuantumScript,
+    truncation: FockTruncation,
+    *,
+    hbar: float,
+    simulator: HybridSimulator = HybridSimulator(method="dense"),
+) -> tuple[np.ndarray]:
+    warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
+
+    qc, regmapper = make_cv_circuit(tape, truncation)
+    # TODO convert qc to qcvdv format
+
+    if tape.shots and not len(tape.shots.shot_vector) == 1:
+        raise NotImplementedError("Complex shot batching is not yet supported")
+
+    results = []
+    if tape.shots:
+        raise NotImplementedError(
+            "Shot-based measurements are not yet supported for QCvDv"
+        )
+    else:
+        # Compute state once and reuse across measurements to reduce simulation time
+        qc = from_CVCircuit(qc)
+        state = simulator.run(qc, shots=1)
+        result = None  # TODO: format this as a qiskit result?
+        for m in tape.measurements:
+            assert isinstance(m, StateMeasurement)
+            results.append(analytic_measurement(m, state, result, regmapper, hbar=hbar))
+
+        if len(tape.measurements) == 1:
+            return results[0]
+
+    return tuple(results)
