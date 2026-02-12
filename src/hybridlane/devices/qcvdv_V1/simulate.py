@@ -4,10 +4,9 @@ import warnings
 
 import numpy as np
 from pennylane.tape import QuantumScript
+from qcvdv.circuit import from_CVCircuit
+from qcvdv.simulator import HybridSimulator
 from scipy.sparse import SparseEfficiencyWarning
-
-from qcvdv.python.circuit import from_CVCircuit
-from qcvdv.python.simulator import HybridSimulator
 
 from ...measurements import FockTruncation, StateMeasurement
 from ..bosonic_qiskit.simulate import analytic_measurement, make_cv_circuit
