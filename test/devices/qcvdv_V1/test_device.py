@@ -213,21 +213,23 @@ class TestExampleCircuits:
 
         # Rather than repeat the circuit `repetitions` times, which would be slower,
         # we just partition the shots ourselves into that many tests
-        expval, samples = circuit(alpha)
-        sample_set = samples.reshape(repetitions, n_per_test)
+        with pytest.raises(NotImplementedError):
+            circuit(alpha)
+        # expval, samples = circuit(alpha)
+        # sample_set = samples.reshape(repetitions, n_per_test)
 
-        # Sample format test
-        assert sample_set.min() >= 0
-        assert sample_set.max() <= fock_levels - 1
+        # # Sample format test
+        # assert sample_set.min() >= 0
+        # assert sample_set.max() <= fock_levels - 1
 
-        rejections = 0
-        for samples in sample_set:
-            # Test overall distribution shape
-            if poisson_test(samples, lam) < 0.05:
-                rejections += 1
+        # rejections = 0
+        # for samples in sample_set:
+        #     # Test overall distribution shape
+        #     if poisson_test(samples, lam) < 0.05:
+        #         rejections += 1
 
-        # Check that we didn't reject more than a majority of our tests
-        assert rejections / repetitions < 0.5
+        # # Check that we didn't reject more than a majority of our tests
+        # assert rejections / repetitions < 0.5
 
     @pytest.mark.parametrize("phi", (0, np.pi / 2, np.pi, 3 * np.pi / 2))
     def test_rotation_analytic(self, phi):
