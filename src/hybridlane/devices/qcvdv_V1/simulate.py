@@ -22,7 +22,6 @@ def simulate(
     warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
 
     qc, regmapper = make_cv_circuit(tape, truncation)
-    # TODO convert qc to qcvdv format
 
     if tape.shots and not len(tape.shots.shot_vector) == 1:
         raise NotImplementedError("Complex shot batching is not yet supported")
