@@ -25,6 +25,12 @@ def test_package_works_without_bosonic_qiskit(monkeypatch):
     monkeypatch.delitem(sys.modules, "bosonic_qiskit", raising=False)
 
 
+def test_package_works_without_qcvdv(monkeypatch):
+    """Test that hybridlane can be imported without qcvdv"""
+
+    monkeypatch.delitem(sys.modules, "qcvdv", raising=False)
+
+
 missing_bosonic_qiskit = importlib.util.find_spec("bosonic_qiskit") is None
 missing_qcvdv = importlib.util.find_spec("qcvdv") is None
 
