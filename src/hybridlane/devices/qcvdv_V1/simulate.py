@@ -4,8 +4,10 @@ import warnings
 
 import numpy as np
 from pennylane.tape import QuantumScript
+from qcvdv.circuit import HybridCircuitV1 as HybridCircuit
 from qcvdv.circuit import from_CVCircuit
 from qcvdv.simulator import HybridSimulator
+from qiskit.quantum_info import Statevector
 from scipy.sparse import SparseEfficiencyWarning
 
 from ...measurements import FockTruncation, StateMeasurement
@@ -33,8 +35,9 @@ def simulate(
         )
     else:
         # Compute state once and reuse across measurements to reduce simulation time
-        qc = from_CVCircuit(qc)
+        qc = from_CVCircuit(qc, hyb_circ=HybridCircuit)
         state = simulator.run(qc, shots=1)
+        state = Statevector(state)
         result = None  # TODO: format this as a qiskit result?
         for m in tape.measurements:
             assert isinstance(m, StateMeasurement)
