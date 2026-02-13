@@ -6,7 +6,7 @@
 from hybridlane import decomposition, ops, sa, transforms
 from hybridlane.drawer import draw_mpl
 from hybridlane.io import to_openqasm
-from hybridlane.measurements import expval, sample, var
+from hybridlane.measurements import expval, sample, state, var
 from hybridlane.ops import *
 from hybridlane.templates import FockLadder
 from hybridlane.transforms import from_pennylane

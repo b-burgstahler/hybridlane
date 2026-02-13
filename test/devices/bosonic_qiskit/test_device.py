@@ -384,3 +384,19 @@ class TestExampleCircuits:
                 rejections += 1
 
         assert rejections / repetitions < 0.5
+
+    def test_statevector(self):
+        fock_levels = 4
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the system (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # check qumodes in state |1>
+            return hqml.state()
+
+        state = circuit()
+        assert np.allclose(state, np.array([0, 0, 1, 0, 0, 0, 0, 0], dtype=complex))
