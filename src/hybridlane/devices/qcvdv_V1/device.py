@@ -10,6 +10,11 @@ from ..bosonic_qiskit.device import BosonicQiskitDevice, _infer_truncation
 
 
 class QCvDvDevice_V1(BosonicQiskitDevice):
+    name = "QCvDvDevice_V1"  # type: ignore
+    short_name = "qc_vdv_v1"
+    version = "0.1"
+    author = "b-burgstahler"
+
     def __init__(self, *args, **kwargs):
         self._backend = kwargs.pop("backend", "dense")
         assert self._backend in ("dense", "scipy", "dense_matrix_gpuv1"), (
