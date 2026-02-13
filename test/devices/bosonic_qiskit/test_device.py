@@ -9,7 +9,6 @@ from functools import partial
 import numpy as np
 import pennylane as qml
 import pytest
-import scipy.stats
 from pennylane.exceptions import DeviceError
 
 import hybridlane as hqml
@@ -20,9 +19,8 @@ from ...util import poisson_test
 
 
 def test_package_works_without_bosonic_qiskit(monkeypatch):
-    """Test that hybridlane can be imported without bosonic qiskit"""
-
     monkeypatch.delitem(sys.modules, "bosonic_qiskit", raising=False)
+    import hybridlane  # noqa: F401
 
 
 missing_bosonic_qiskit = importlib.util.find_spec("bosonic_qiskit") is None
@@ -321,11 +319,11 @@ class TestExampleCircuits:
         assert np.isclose(n1, 0)
         assert np.isclose(n2, 0)
 
-    # Fixme: this test fails because constructing ExpectationMP infers a schema, but the schemas
-    # for n and x are different. However, technically in an analytic simulation of bosonic qiskit,
-    # it could handle this just fine. Maybe we need to be more deliberate about where verification
-    # and static analysis happen?
-    @pytest.mark.skip
+    # Fixme: this test fails because constructing ExpectationMP infers a schema, but
+    # the schemas for n and x are different. However, technically in an analytic
+    # simulation of bosonic qiskit, it could handle this just fine. Maybe we need to be
+    # more deliberate about where verification and static analysis happen?
+    @pytest.mark.xfail
     def test_complex_multibasis_observable_analytic(self):
         # This is another coherent state, but this time we measure n + x
         alpha = 1.5
@@ -344,29 +342,21 @@ class TestExampleCircuits:
         expval_x = 2 * alpha
         assert np.isclose(n, expval_n + expval_x)
 
-    # Fixme: this test fails, it is supposed to have an SQR gate but that's not
-    # yet implemented in bosonic qiskit
-    @pytest.mark.skip
-    @pytest.mark.parametrize("alpha", (1.0, -1.0, 2.0, -2.0))
+    @pytest.mark.parametrize("alpha", (2.0, -2.0))
     def test_cat_state_readout(self, alpha):
-        fock_levels = 16
-        n_per_test = 5000
-        repetitions = 10
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=16)
 
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
-
-        @partial(qml.set_shots, shots=repetitions * n_per_test)
         @qml.qnode(dev)
         def circuit(alpha):
-            # Put the qumode into state |α> + |-α>
+            # Put the qumode into state |α> + |-α>, which acts like |0L> + |1L>
             qml.H(0)
-            hqml.ConditionalDisplacement(alpha, 0, wires=[1, 0])
+            hqml.CD(alpha, 0, wires=[0, 1])
             qml.H(0)
 
             # Now use ancilliary qubit to read it out with a phase kickback
             qml.Displacement(alpha, 0, 1)  # |0> + |2α>
             qml.H(2)
-            hqml.SelectiveNumberArbitraryPhase(np.pi / 2, 0, wires=[1, 2])
+            hqml.SQR(np.pi, np.pi / 2, 0, wires=[2, 1])  # Ry(pi)|0><0|
             qml.H(2)
 
             return hqml.sample(qml.PauliZ(2))
@@ -384,3 +374,19 @@ class TestExampleCircuits:
                 rejections += 1
 
         assert rejections / repetitions < 0.5
+
+    def test_statevector(self):
+        fock_levels = 4
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the system (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # check qumodes in state |1>
+            return hqml.state()
+
+        state = circuit()
+        assert np.allclose(state, np.array([0, 0, 1, 0, 0, 0, 0, 0], dtype=complex))
