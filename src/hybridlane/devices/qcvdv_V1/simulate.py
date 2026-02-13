@@ -23,7 +23,7 @@ def simulate(
 ) -> tuple[np.ndarray]:
     warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
 
-    qc, regmapper = make_cv_circuit(tape, truncation)
+    bq_qc, regmapper = make_cv_circuit(tape, truncation)
 
     if tape.shots and not len(tape.shots.shot_vector) == 1:
         raise NotImplementedError("Complex shot batching is not yet supported")
@@ -35,7 +35,7 @@ def simulate(
         )
     else:
         # Compute state once and reuse across measurements to reduce simulation time
-        qc = from_CVCircuit(qc, hyb_circ=HybridCircuit)
+        qc = from_CVCircuit(bq_qc, hyb_circ=HybridCircuit)
         state = simulator.run(qc, shots=1)
         state = Statevector(state)
         result = None  # TODO: format this as a qiskit result?

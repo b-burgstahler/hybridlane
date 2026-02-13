@@ -16,8 +16,6 @@ import hybridlane as hqml
 from hybridlane.measurements import FockTruncation
 from hybridlane.sa.exceptions import StaticAnalysisError
 
-from ...util import poisson_test
-
 
 def test_package_works_without_bosonic_qiskit(monkeypatch):
     """Test that hybridlane can be imported without bosonic qiskit"""
@@ -292,9 +290,30 @@ class TestExampleCircuits:
             )
 
         expval, n1, n3 = circuit()
+        assert np.isclose(expval, 1.0)
         assert np.isclose(n1, 1)
         assert np.isclose(n3, 2)
+
+    def test_jc_analytic_small(self):
+        dev = qml.device("qcvdv.hybrid", max_fock_level=4)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # check qumodes in state |1>
+            return (
+                qml.expval(
+                    hqml.FockStateProjector([1], [1])
+                ),  # check that from_pennylane transform handles it
+                hqml.expval(hqml.NumberOperator(1)),
+            )
+
+        expval, n1 = circuit()
         assert np.isclose(expval, 1.0)
+        assert np.isclose(n1, 1)
 
     def test_complex_fock_observable_analytic(self):
         # This is another coherent state, but this time we measure n + n^2, which
@@ -395,3 +414,39 @@ class TestExampleCircuits:
                 rejections += 1
 
         assert rejections / repetitions < 0.5
+
+
+class TestExampleCircuitsVSBosonicQiskitDevice:
+    def test_displacement_analytic(self):
+        fock_levels = 4
+        bq_dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+
+        def circuit_back():
+            # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # check qumodes in state |1>
+            return (
+                qml.state(),
+                qml.expval(
+                    hqml.FockStateProjector([1], [1])
+                ),  # check that from_pennylane transform handles it
+                hqml.expval(hqml.NumberOperator(1)),
+            )
+
+        @qml.qnode(bq_dev)
+        def bq_circuit():
+            return circuit_back()
+
+        @qml.qnode(dev)
+        def circuit():
+            return circuit_back()
+
+        bq_state, bq_expval, bq_n1 = bq_circuit()
+        state, expval, n1 = circuit()
+
+        assert np.allclose(state, bq_state)
+        assert np.isclose(expval, bq_expval)
+        assert np.isclose(n1, bq_n1)
