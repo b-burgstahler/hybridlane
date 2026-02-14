@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 
-import pennylane as qml
 from pennylane.typing import TensorLike
 from pennylane.wires import Wires
 
@@ -9,14 +8,17 @@ from hybridlane.measurements.base import StateMeasurement
 from .base import Truncation
 
 
-def state() -> "StateMP":
+def state(wires: Wires | None = None) -> "StateMP":
     """State measurement process."""
 
-    return StateMP()
+    return StateMP(wires=wires)
 
 
 class StateMP(StateMeasurement):
     _shortname = "state"
+
+    def __init__(self, wires: Wires | None = None, id: str | None = None):
+        super().__init__(wires=wires, id=id)
 
     @property
     def numeric_type(self):
@@ -28,4 +30,7 @@ class StateMP(StateMeasurement):
     def process_state(
         self, state: Sequence[complex], wire_order: Wires, truncation: Truncation
     ) -> TensorLike:
-        return qml.math.array(state)
+        # todo:
+        raise NotImplementedError(
+            "Currently, computing the analytic statevector should be handled by the device"
+        )
