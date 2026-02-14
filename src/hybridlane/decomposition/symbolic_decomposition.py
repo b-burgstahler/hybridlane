@@ -67,8 +67,9 @@ def _ctrl_from_qcond_resources(base_class, base_params, num_control_wires, **_):
 
 
 @qml.register_condition(
-    lambda num_control_wires, num_zero_control_values, **_: num_control_wires == 1
-    and num_zero_control_values == 0
+    lambda num_control_wires, num_zero_control_values, **_: (
+        num_control_wires == 1 and num_zero_control_values == 0
+    )
 )
 @qml.register_resources(_ctrl_from_qcond_resources)
 def ctrl_from_qcond(*params, wires, base, control_wires, **_):
