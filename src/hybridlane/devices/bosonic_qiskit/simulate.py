@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import functools
+import itertools
 import math
 import warnings
 from typing import Callable
@@ -36,7 +37,6 @@ from ...measurements import (
     SampleMeasurement,
     SampleResult,
     StateMeasurement,
-    StateMP,
     VarianceMP,
 )
 from ...ops.mixins import Hybrid
@@ -115,9 +115,30 @@ def analytic_probs(
 
 
 def analytic_state(
-    state: Statevector, result: QiskitResult, obs: np.ndarray | None = None
+    state: Statevector,
+    result: QiskitResult,
+    obs: np.ndarray,
+    regmapper: RegisterMapping,
 ) -> np.ndarray:
-    return state.data
+    # TODO state needs to be reshaped....
+    qiskit_wires = regmapper.wire_order[::-1]
+    hybridlane_wires = regmapper.sa_res.wire_order
+
+    qiskit_dims = [regmapper.truncation.dim(w) for w in qiskit_wires]
+    hybridlane_dims = [regmapper.truncation.dim(w) for w in hybridlane_wires]
+
+    state_vector = state.data.reshape(qiskit_dims)
+    state_vector = state_vector.transpose(qiskit_wires)
+
+    out_vector = -1 * np.ones(state.data.shape, dtype=complex)
+
+    mults = np.cumprod(hybridlane_dims[:-1])
+    mults = np.insert(mults, 0, 1)
+    for idx in itertools.product(*[range(d) for d in hybridlane_dims]):
+        out_idx = np.dot(idx, mults)
+        out_vector[out_idx] = state_vector[idx]
+    assert not np.any(out_vector == -1)
+    return out_vector
 
 
 analytic_measurement_map: dict[
@@ -127,7 +148,7 @@ analytic_measurement_map: dict[
     ExpectationMP: analytic_expval,
     VarianceMP: analytic_var,
     ProbabilityMP: analytic_probs,
-    StateMP: analytic_state,
+    # StateMP: analytic_state, # Don't even need StateMP if the device handles the calculation
 }
 
 
@@ -409,7 +430,11 @@ def analytic_measurement(
         if m.obs is not None
         else None
     )
-    return analytic_measurement_map.get(type(m))(state, result, obs)
+    return (
+        analytic_measurement_map.get(type(m))(state, result, obs)
+        if type(m) in analytic_measurement_map
+        else analytic_state(state, result, obs, regmapper)
+    )
 
 
 def sampled_measurement(

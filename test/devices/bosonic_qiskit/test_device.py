@@ -364,9 +364,9 @@ class TestExampleCircuits:
         z = circuit(alpha)
         assert np.isclose(z, 0, atol=1e-7)
 
-    def test_statevector(self):
+    def test_statevector_easy(self):
         fock_levels = 4
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels, wires=2)
 
         @qml.qnode(dev)
         def circuit():
@@ -378,4 +378,66 @@ class TestExampleCircuits:
             return hqml.state()
 
         state = circuit()
-        assert np.allclose(state, np.array([0, 0, 1, 0, 0, 0, 0, 0], dtype=complex))
+        target = np.zeros((8,), dtype=complex)
+        target[2] = (
+            1.0  # corresponds to |0>|1> --> endian flip |1>|0> --> binary 010 == dec 2
+        )
+        assert np.allclose(state, target)
+
+    def test_statevector_medium(self):
+        fock_levels = 4
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels, wires=4)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # Put the second subsystem (qubit 2, qumode 3) in state |0>_Q |2>_B
+            qml.X(2)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [2, 3])
+            qml.X(2)
+            hqml.JaynesCummings(np.pi / (2 * np.sqrt(2)), np.pi / 2, [2, 3])
+
+            return hqml.state()
+
+        state = circuit()
+        target = np.zeros((64,), dtype=complex)
+        target[34] = (
+            1.0  # corresponds to |0>|1>|0>|2> -> endian flip |2>|0>|1>|0> -> binary 100010 == dec 34
+        )
+
+        assert np.allclose(state, target)
+
+    def test_state_vector_complex(self):
+        fock_levels = 4
+        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels, wires=6)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            qml.X(0)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+
+            # Put the second subsystem (qubit 2, qumode 3) in state |0>_Q |2>_B
+            qml.X(2)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [2, 3])
+            qml.X(2)
+            hqml.JaynesCummings(np.pi / (2 * np.sqrt(2)), np.pi / 2, [2, 3])
+
+            # Put the third subsystem (qubit 4, qumode 5) in state |0>_Q |2>_B
+            qml.X(4)
+            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [4, 5])
+            qml.X(4)
+            hqml.JaynesCummings(np.pi / (2 * np.sqrt(2)), np.pi / 2, [4, 5])
+
+            return hqml.state()
+
+        state = circuit()
+        target = np.zeros((512,), dtype=complex)
+        target[290] = (
+            1.0  # corresponds to |0>|1>|0>|2>|0>|2> -> endian flip |2>|0>|2>|0>|1>|0> -> binary 100100010 == dec 290
+        )
+
+        assert np.allclose(state, target)
