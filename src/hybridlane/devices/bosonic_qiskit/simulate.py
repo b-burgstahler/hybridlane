@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import functools
-import itertools
 import math
 import warnings
 from typing import Callable
@@ -37,7 +36,6 @@ from ...measurements import (
     SampleMeasurement,
     SampleResult,
     StateMeasurement,
-    StateMP,
     VarianceMP,
 )
 from ...ops.mixins import Hybrid
@@ -121,23 +119,26 @@ def analytic_state(
     obs: np.ndarray,
     regmapper: RegisterMapping,
 ) -> np.ndarray:
-    # TODO state needs to be reshaped....
-    qiskit_wires = regmapper.wire_order[::-1]
-    hybridlane_wires = regmapper.sa_res.wire_order
-
-    qiskit_dims = [regmapper.truncation.dim(w) for w in qiskit_wires]
-    hybridlane_dims = [regmapper.truncation.dim(w) for w in hybridlane_wires]
-
-    state_vector = state.data.reshape(qiskit_dims)
-    state_vector = state_vector.transpose(qiskit_wires)
+    source_wires = Wires(
+        range(len(regmapper.wire_order))
+    )  # auto pulling from ALL hybridlane wires
+    destination_wires = (
+        regmapper.wire_order
+    )  # how those wires map to the bq statevector wires
+    state_size = state.data.shape[0]
 
     out_vector = -1 * np.ones(state.data.shape, dtype=complex)
 
-    mults = np.cumprod(hybridlane_dims[:-1])
-    mults = np.insert(mults, 0, 1)
-    for idx in itertools.product(*[range(d) for d in hybridlane_dims]):
-        out_idx = np.dot(idx, mults)
-        out_vector[out_idx] = state_vector[idx]
+    order = permute_subsystems(
+        sp.diags([range(state_size)], [0]),  # matrix
+        source_wires,  # 'observable' wires
+        destination_wires,  # 'statevector' wires
+        regmapper,
+        qiskit_order=True,
+    ).diagonal()
+    for i, idx in enumerate(order):
+        out_vector[int(idx)] = state.data[i]
+
     assert not np.any(out_vector == -1)
     return out_vector
 
@@ -149,7 +150,7 @@ analytic_measurement_map: dict[
     ExpectationMP: analytic_expval,
     VarianceMP: analytic_var,
     ProbabilityMP: analytic_probs,
-    StateMP: analytic_state,  # Don't even need StateMP if the device handles the calculation
+    # StateMP: analytic_state,  # Don't even need StateMP if the device handles the calculation
 }
 
 
