@@ -118,6 +118,7 @@ def analytic_state(
     result: QiskitResult,
     obs: np.ndarray,
     regmapper: RegisterMapping,
+    qiskit_order: bool = True,
 ) -> np.ndarray:
     source_wires = Wires(
         range(len(regmapper.wire_order))
@@ -134,7 +135,7 @@ def analytic_state(
         source_wires,  # 'observable' wires
         destination_wires,  # 'statevector' wires
         regmapper,
-        qiskit_order=True,
+        qiskit_order=qiskit_order,
     ).diagonal()
     for i, idx in enumerate(order):
         out_vector[int(idx)] = state.data[i]
@@ -199,7 +200,11 @@ def get_sparse_observable_matrix(
 
 
 def get_observable_matrix(
-    obs: Operator, regmapper: RegisterMapping, *, hbar: float
+    obs: Operator,
+    regmapper: RegisterMapping,
+    *,
+    hbar: float,
+    qiskit_order: bool = False,
 ) -> np.ndarray:
     # Here we need to construct the matrix for the observable in the wire order
     # expected by qiskit.
@@ -210,13 +215,27 @@ def get_observable_matrix(
     # Handle symbolic observable expressions by traversing the expression tree
     match obs:
         case Sum(operands=terms):
-            return sum(get_observable_matrix(o, regmapper, hbar=hbar) for o in terms)
+            return sum(
+                get_observable_matrix(
+                    o, regmapper, hbar=hbar, qiskit_order=qiskit_order
+                )
+                for o in terms
+            )
         case SProd(base=op, scalar=scalar):
-            return scalar * get_observable_matrix(op, regmapper, hbar=hbar)
+            return scalar * get_observable_matrix(
+                op, regmapper, hbar=hbar, qiskit_order=qiskit_order
+            )
         case Exp(base=op, scalar=scalar):
-            return expm(scalar * get_observable_matrix(op, regmapper, hbar=hbar))
+            return expm(
+                scalar
+                * get_observable_matrix(
+                    op, regmapper, hbar=hbar, qiskit_order=qiskit_order
+                )
+            )
         case Pow(base=op, scalar=pow):
-            mat = get_observable_matrix(op, regmapper, hbar=hbar)
+            mat = get_observable_matrix(
+                op, regmapper, hbar=hbar, qiskit_order=qiskit_order
+            )
             try:
                 return np.linalg.matrix_power(mat, pow)
             except TypeError:  # non-integer power
@@ -224,7 +243,10 @@ def get_observable_matrix(
         case Prod(operands=ops):
             if not util.is_tensor_product(obs):
                 mats = map(
-                    lambda x: get_observable_matrix(x, regmapper, hbar=hbar), ops
+                    lambda x: get_observable_matrix(
+                        x, regmapper, hbar=hbar, qiskit_order=qiskit_order
+                    ),
+                    ops,
                 )
                 return functools.reduce(lambda x, y: x @ y, mats)
 
@@ -259,7 +281,7 @@ def get_observable_matrix(
         obs_wires,
         statevector_wires,
         regmapper,
-        qiskit_order=True,
+        qiskit_order=qiskit_order,
     )
 
     return composite_matrix.todense()
@@ -428,7 +450,7 @@ def analytic_measurement(
     hbar: float,
 ):
     obs = (
-        get_observable_matrix(m.obs, regmapper, hbar=hbar)
+        get_observable_matrix(m.obs, regmapper, hbar=hbar, qiskit_order=True)
         if m.obs is not None
         else None
     )

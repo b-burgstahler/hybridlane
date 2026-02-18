@@ -195,7 +195,7 @@ class TestExampleCircuits:
         # Same test as above, but with finite samples. We'll test against the poisson distribution.
         # This tests finite sampling of unbounded cv operators (HasSpectrum)
         fock_levels = 16
-        lam = np.abs(alpha) ** 2
+
         n_per_test = 5000
         repetitions = 10
 
@@ -213,6 +213,8 @@ class TestExampleCircuits:
         # we just partition the shots ourselves into that many tests
         with pytest.raises(NotImplementedError):
             circuit(alpha)
+
+        # lam = np.abs(alpha) ** 2
         # expval, samples = circuit(alpha)
         # sample_set = samples.reshape(repetitions, n_per_test)
 
@@ -300,18 +302,20 @@ class TestExampleCircuits:
         @qml.qnode(dev)
         def circuit():
             # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
-            qml.X(0)
-            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+            hqml.FockState(
+                1, wires=[0, 1]
+            )  # set mode to 1 using wire[0] as qubit control and wire[1] as qumode
 
             # check qumodes in state |1>
             return (
+                hqml.state(),
                 qml.expval(
                     hqml.FockStateProjector([1], [1])
                 ),  # check that from_pennylane transform handles it
                 hqml.expval(hqml.NumberOperator(1)),
             )
 
-        expval, n1 = circuit()
+        state, expval, n1 = circuit()
         assert np.isclose(expval, 1.0)
         assert np.isclose(n1, 1)
 
@@ -414,6 +418,67 @@ class TestExampleCircuits:
                 rejections += 1
 
         assert rejections / repetitions < 0.5
+
+    @pytest.mark.parametrize(["wires", "state_index"], [([0, 1], 1), ([1, 0], 2)])
+    def test_statevector_with_wire_flips(self, wires, state_index):
+        fock_levels = 4
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels, wires=2)
+
+        @qml.qnode(dev)
+        def circuit():
+            hqml.FockState(
+                1, wires
+            )  # set mode to 1 using wire[0] as qubit control and wire[1] as qumode
+            return (
+                hqml.state(),
+                hqml.expval(hqml.NumberOperator(wires[1])),
+            )
+
+        state, num = circuit()
+        assert np.isclose(num, 1)
+        target = np.zeros((8,), dtype=complex)
+        target[state_index] = 1.0
+        assert np.allclose(state, target)
+
+    @pytest.mark.parametrize(
+        ["wires", "state_index"],
+        [
+            ([0, 1, 2], 6),
+            ([0, 2, 1], 9),
+            ([1, 0, 2], 10),
+            ([1, 2, 0], 12),
+            ([2, 0, 1], 17),
+            ([2, 1, 0], 18),
+        ],
+    )
+    def test_statevector_with_more_wires(self, wires, state_index):
+        fock_levels = 4
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels, wires=3)
+
+        @qml.qnode(dev)
+        def circuit():
+            # always assume wire[0] is qubit control and wire[1] and wire[2] is qumode
+            hqml.FockState(  # set mode to 1 using wire[0] as qubit control and wire[1] as qumode
+                1, [wires[0], wires[1]]
+            )
+            hqml.FockState(  # set mode to 1 using wire[0] as qubit control and wire[2] as qumode
+                2, [wires[0], wires[2]]
+            )
+            return (
+                hqml.state(),
+                hqml.expval(hqml.NumberOperator(wires[1])),
+                hqml.expval(hqml.NumberOperator(wires[2])),
+            )
+
+        state, num1, num2 = circuit()
+        # hqml.draw_mpl(circuit, level="device")()[0].savefig(
+        #     f"test_{state_index}.png"
+        # )  # for debugging
+        assert np.isclose(num1, 1)
+        assert np.isclose(num2, 2)
+        target = np.zeros((32,), dtype=complex)
+        target[state_index] = 1.0
+        assert np.allclose(state, target)
 
 
 class TestExampleCircuitsVSBosonicQiskitDevice:
