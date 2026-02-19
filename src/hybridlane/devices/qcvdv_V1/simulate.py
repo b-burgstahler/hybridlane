@@ -3,7 +3,9 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
+import scipy.sparse as sp
 from pennylane.tape import QuantumScript
+from pennylane.wires import Wires
 from qcvdv.circuit import HybridCircuitV1 as HybridCircuit
 from qcvdv.circuit import from_CVCircuit
 from qcvdv.simulator import HybridSimulator
@@ -20,6 +22,7 @@ from ..bosonic_qiskit.simulate import (
     analytic_measurement_map,
     get_observable_matrix,
     make_cv_circuit,
+    permute_subsystems,
 )
 
 
@@ -45,6 +48,7 @@ def simulate(
     else:
         # Compute state once and reuse across measurements to reduce simulation time
         qc = from_CVCircuit(bq_qc, hyb_circ=HybridCircuit)
+
         state = simulator.run(qc, shots=1)
         state = Statevector(state)
         result = None  # TODO: format this as a qiskit result?
@@ -67,14 +71,14 @@ def analytic_measurement(
     hbar: float,
 ):
     obs = (
-        get_observable_matrix(m.obs, regmapper, hbar=hbar, qiskit_order=False)
+        get_observable_matrix(m.obs, regmapper, hbar=hbar, qiskit_order=True)
         if m.obs is not None
         else None
     )
     return (
         analytic_measurement_map.get(type(m))(state, result, obs)
         if type(m) in analytic_measurement_map
-        else analytic_state(state, result, obs, regmapper, qiskit_order=False)
+        else analytic_state(state, result, obs, regmapper, qiskit_order=True)
     )
 
 
@@ -85,37 +89,25 @@ def analytic_state(
     regmapper: RegisterMapping,
     qiskit_order: bool = True,
 ) -> np.ndarray:
-    out_vector = -1.0 * np.ones(len(state.data), dtype=complex)
-    dims = [regmapper.truncation.dim_sizes[x] for x in regmapper.wire_order]
-    all_fock_strings = [
-        _decimal_to_fock_string(i, dims) for i in range(len(state.data))
-    ]
-    order = [
-        _fock_string_to_decimal(fock_string, dims) for fock_string in all_fock_strings
-    ]
+    source_wires = Wires(
+        range(len(regmapper.wire_order))
+    )  # auto pulling from ALL hybridlane wires
+    destination_wires = (
+        regmapper.wire_order
+    )  # how those wires map to the bq statevector wires
+    state_size = state.data.shape[0]
 
+    out_vector = -1 * np.ones(state.data.shape, dtype=complex)
+
+    order = permute_subsystems(
+        sp.diags([range(state_size)], [0]),  # matrix
+        source_wires,  # 'observable' wires
+        destination_wires,  # 'statevector' wires
+        regmapper,
+        qiskit_order=qiskit_order,
+    ).diagonal()
     for i, idx in enumerate(order):
         out_vector[int(idx)] = state.data[i]
 
     assert not np.any(out_vector == -1)
     return out_vector
-
-
-def _fock_string_to_decimal(
-    bin_list: list[int], dims: list[int], lexigocraphical: bool = True
-) -> int:
-    rev_dim = dims[::-1] if lexigocraphical else dims
-    bases = np.cumprod([1] + rev_dim[:-1])
-    return int(np.dot(bases, bin_list[::-1]))
-
-
-def _decimal_to_fock_string(
-    num: int, dims: list[int], lexigocraphical: bool = True
-) -> list[int]:
-    length = len(dims)
-    rev_dim = dims[::-1] if lexigocraphical else dims
-    bin_list = [0] * length
-    for i in range(length):
-        bin_list[length - 1 - i] = num % rev_dim[i]
-        num //= rev_dim[i]
-    return bin_list
