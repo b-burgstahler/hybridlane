@@ -489,12 +489,12 @@ class TestExampleCircuitsVSBosonicQiskitDevice:
 
         def circuit_back():
             # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            hqml.AntiJaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
             qml.X(0)
-            hqml.JaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
 
             # check qumodes in state |1>
             return (
-                qml.state(),
+                hqml.state(),
                 qml.expval(
                     hqml.FockStateProjector([1], [1])
                 ),  # check that from_pennylane transform handles it
