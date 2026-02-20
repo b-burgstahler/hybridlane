@@ -5,6 +5,7 @@
 import importlib.util
 import sys
 from functools import partial
+from time import time_ns
 
 import numpy as np
 import pennylane as qml
@@ -481,6 +482,64 @@ class TestExampleCircuits:
         target = np.zeros((32,), dtype=complex)
         target[state_index] = 1.0
         assert np.allclose(state, target)
+
+
+@pytest.skip(
+    reason="Caching doesn't seem to be working properly due to the recreation of the circuit with each hybridlane call."
+)
+class TestCircuitCaching:
+    def test_circuit_caching_basic(self):
+        fock_levels = 4
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+
+        @qml.qnode(dev)
+        def circuit():
+            # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B
+            hqml.AntiJaynesCummings(np.pi / 2, np.pi / 2, [0, 1])
+            qml.X(0)
+
+            # check qumodes in state |1>
+            return (hqml.state(),)
+
+        # Run the circuit twice and make sure we get the same result, which would indicate that the second time it runs,
+        # it's using a cached version of the compiled circuit rather than recompiling it from scratch and potentially getting a different result due to non-determinism in compilation or something.
+
+        times = []
+        for _ in range(3):
+            start = time_ns()
+            circuit()
+            stop = time_ns()
+            times.append(stop - start)
+
+        diffs = np.diff(times)
+        assert np.all(diffs < 0)
+
+    @pytest.mark.parametrize("alphas", ([0.5, 1.0, 1.5], [1.0, 1.0, 1.0]))
+    def test_circuit_caching_parameters(self, alphas):
+        fock_levels = 16
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+
+        @qml.qnode(dev)
+        def circuit(alphas, reps=1):
+            for _ in range(reps):
+                qml.Displacement(alphas[0], 0, 0)
+                qml.Displacement(alphas[1], 0, 0)
+                qml.Displacement(alphas[2], 0, 0)
+            return hqml.state()
+
+        reps = [1, 8]
+        times = []
+        for rep in reps:
+            start = time_ns()
+            circuit(alphas, reps=rep)
+            stop = time_ns()
+            times.append(stop - start)
+        per_rep = (
+            np.array(times) / np.array(reps) / 10**9
+        )  # convert to seconds and divide by reps
+        diff_per_rep = np.diff(per_rep)
+        assert np.all(diff_per_rep < 0.001)  # should be less than 1ms difference
+        assert False
 
 
 class TestExampleCircuitsVSBosonicQiskitDevice:
