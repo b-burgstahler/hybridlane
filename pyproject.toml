@@ -35,12 +35,15 @@ bq = [
     "sparse>=0.17.0",
 ]
 all = [
-    "hybridlane[bq,qscout]"
+    "hybridlane[bq,qscout,qcvdv]"
 ]
 qscout = [
     "jaqalpaq>=1.3.0",
     "python-constraint2>=2.4.0",
     "qscout-gatemodels>=1.3.0",
+]
+qcvdv = [
+    "pybind11>=3.0.1",
 ]
 
 [project.entry-points."pennylane.plugins"]
