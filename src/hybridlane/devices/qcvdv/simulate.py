@@ -36,7 +36,7 @@ def simulate(
     truncation: FockTruncation,
     *,
     hbar: float,
-    simulator: HybridSimulator = HybridSimulator(method="dense"),
+    simulator: HybridSimulator,
 ) -> tuple[np.ndarray]:
     warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
 
