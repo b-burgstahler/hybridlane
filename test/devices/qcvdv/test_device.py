@@ -484,7 +484,7 @@ class TestExampleCircuits:
         assert np.allclose(state, target)
 
 
-@pytest.skip(
+@pytest.mark.skip(
     reason="Caching doesn't seem to be working properly due to the recreation of the circuit with each hybridlane call."
 )
 class TestCircuitCaching:
