@@ -543,6 +543,9 @@ class TestCircuitCaching:
         assert False
 
 
+@pytest.mark.slow(
+    reason="This is more of a benchmark than a test, it confirms that qcvdv is faster than bosonic-qiskit."
+)
 class TestExampleCircuitsVSBosonicQiskitDevice:
     @pytest.mark.parametrize("fock_levels", (64, 256, 512))
     def test_sim_speed_difference(self, fock_levels):

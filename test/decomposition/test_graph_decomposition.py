@@ -51,13 +51,14 @@ qml.add_decomps("Pow(DJCEvo)", pow_rotation)
 
 
 class TestApplications:
-    def test_dispersive_jc_qpe(self):
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_dispersive_jc_qpe(self, device):
         omega_r = 1
         omega_q = -1
         chi = 0.1
         U = DJCEvo(1, omega_r, omega_q, chi, ("q", "m"))
 
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+        dev = qml.device(device, max_fock_level=8)
 
         @qml.transforms.decompose(
             gate_set={

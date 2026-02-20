@@ -103,8 +103,9 @@ class TestDecomposition:
 
 
 class TestGraphDecomposition:
-    def test_qcondf_to_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_qcondf_to_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -117,8 +118,9 @@ class TestGraphDecomposition:
         tape = qml.workflow.construct_tape(circuit)()
         assert len(tape.operations) == 1  # 1 cr
 
-    def test_multi_qcondf_to_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_multi_qcondf_to_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -131,8 +133,9 @@ class TestGraphDecomposition:
         tape = qml.workflow.construct_tape(circuit)()
         assert len(tape.operations) == 3  # 1 cr, 2 cnot
 
-    def test_ctrlf_to_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_ctrlf_to_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -145,8 +148,9 @@ class TestGraphDecomposition:
         tape = qml.workflow.construct_tape(circuit)()
         assert len(tape.operations) == 2  # 1 r, 1 cr
 
-    def test_multicondf_to_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_multicondf_to_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -163,8 +167,9 @@ class TestGraphDecomposition:
             qml.CNOT([1, 2]),
         ]
 
-    def test_condbs_to_cbs(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_condbs_to_cbs(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -177,8 +182,9 @@ class TestGraphDecomposition:
         tape = qml.workflow.construct_tape(circuit)()
         assert tape.operations == [hqml.ConditionalBeamsplitter(0.5, 0, [2, 0, 1])]
 
-    def test_multicondbs_to_cbs(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_multicondbs_to_cbs(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -195,8 +201,9 @@ class TestGraphDecomposition:
             qml.CNOT([2, 3]),
         ]
 
-    def test_cond_cd(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_cond_cd(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -215,8 +222,9 @@ class TestGraphDecomposition:
             qml.CNOT([2, 3]),
         ]
 
-    def test_cond_pow_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_cond_pow_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -235,8 +243,9 @@ class TestGraphDecomposition:
             qml.CNOT([2, 3]),
         ]
 
-    def test_pow_adj_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_pow_adj_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,
@@ -249,8 +258,9 @@ class TestGraphDecomposition:
         tape = qml.workflow.construct_tape(circuit)()
         assert tape.operations == [hqml.ConditionalRotation(-2.5, [0, 1])]
 
-    def test_pow_cond_cr(self, graph_enabled):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
+    @pytest.mark.parametrize("device", ("bosonicqiskit.hybrid", "qcvdv.hybrid"))
+    def test_pow_cond_cr(self, graph_enabled, device):
+        dev = qml.device(device, max_fock_level=8)
 
         @partial(
             qml.transforms.decompose,

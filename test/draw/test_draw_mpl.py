@@ -11,9 +11,11 @@ plt = pytest.importorskip("matplotlib.pyplot")
 patches = pytest.importorskip("matplotlib.patches")
 
 import hybridlane as hqml  # noqa: E402
-from hybridlane.drawer.tape_mpl import default_qubit_color, default_qumode_color  # noqa: E402
 from hybridlane.drawer.mpldrawer import icon_face_color  # noqa: E402
-
+from hybridlane.drawer.tape_mpl import (  # noqa: E402
+    default_qubit_color,
+    default_qumode_color,
+)
 
 dev = qml.device("bosonicqiskit.hybrid", max_fock_level=8)
 
