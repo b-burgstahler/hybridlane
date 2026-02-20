@@ -40,12 +40,12 @@ class TestQCvDvDevice_V1:
     def test_device_is_registered(self):
         from hybridlane.devices import QCvDvDevice_V1
 
-        dev = qml.device("qcvdv.hybrid")
+        dev = qml.device("qcvdv.convert")
         assert isinstance(dev, QCvDvDevice_V1)
 
     def test_non_power_of_two_truncation(self):
         trunc = FockTruncation.all_fock_space([0, 1], {0: 2, 1: 7})
-        dev = qml.device("qcvdv.hybrid", truncation=trunc)
+        dev = qml.device("qcvdv.convert", truncation=trunc)
 
         @qml.qnode(dev)
         def circuit():
@@ -58,7 +58,7 @@ class TestQCvDvDevice_V1:
     def test_no_inferrable_truncation(self):
         # This circuit has a qumode that should be detected through static analysis,
         # but no truncation is provided.
-        dev = qml.device("qcvdv.hybrid")
+        dev = qml.device("qcvdv.convert")
 
         @qml.qnode(dev)
         def circuit():
@@ -72,7 +72,7 @@ class TestQCvDvDevice_V1:
         # This circuit should be detected as all qubit and therefore automagically
         # derive a truncation of 2 for each qubit. It'll then fail because
         # we only simulate hybrid programs.
-        dev = qml.device("qcvdv.hybrid")
+        dev = qml.device("qcvdv.convert")
 
         @qml.qnode(dev)
         def circuit():
@@ -83,7 +83,7 @@ class TestQCvDvDevice_V1:
             circuit()
 
     def test_wires_aliased_by_operation(self):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=8)
+        dev = qml.device("qcvdv.convert", max_fock_level=8)
 
         @qml.qnode(dev)
         def circuit():
@@ -105,7 +105,7 @@ class TestQCvDvDevice_V1:
         ),
     )
     def test_wires_aliased_by_observable(self, obs):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=8)
+        dev = qml.device("qcvdv.convert", max_fock_level=8)
 
         @qml.qnode(dev)
         def circuit():
@@ -122,7 +122,7 @@ class TestExampleCircuits:
     def test_vacuum_expval(self):
         # The simplest test you could do, checking the vacuum state |0> has <n> = 0
 
-        dev = qml.device("qcvdv.hybrid", max_fock_level=16)
+        dev = qml.device("qcvdv.convert", max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit():
@@ -134,7 +134,7 @@ class TestExampleCircuits:
 
     def test_vacuum_var(self):
         # Checking the vacuum state |0> has Var(n) = 0 since it's a definite eigenstate
-        dev = qml.device("qcvdv.hybrid", max_fock_level=16)
+        dev = qml.device("qcvdv.convert", max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit():
@@ -145,7 +145,7 @@ class TestExampleCircuits:
         assert np.isclose(result, 0)
 
     def test_heisenberg_uncertainty(self):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=16, hbar=2)
+        dev = qml.device("qcvdv.convert", max_fock_level=16, hbar=2)
 
         @qml.qnode(dev)
         def circuit():
@@ -159,7 +159,7 @@ class TestExampleCircuits:
     def test_displacement_analytic(self, alpha):
         # Basic circuit that prepares |α> and checks the mean photon count
         # is <n> = |α|^2
-        dev = qml.device("qcvdv.hybrid", max_fock_level=16)
+        dev = qml.device("qcvdv.convert", max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit(alpha):
@@ -177,7 +177,7 @@ class TestExampleCircuits:
         lam = np.abs(alpha) ** 2
         truncation = FockTruncation.all_fock_space([0, 1], {0: 16, 1: 4})
 
-        dev = qml.device("qcvdv.hybrid", truncation=truncation)
+        dev = qml.device("qcvdv.convert", truncation=truncation)
 
         @qml.qnode(dev)
         def circuit(alpha):
@@ -199,7 +199,7 @@ class TestExampleCircuits:
         n_per_test = 5000
         repetitions = 10
 
-        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+        dev = qml.device("qcvdv.convert", max_fock_level=fock_levels)
 
         @partial(qml.set_shots, shots=repetitions * n_per_test)
         @qml.qnode(dev)
@@ -236,7 +236,7 @@ class TestExampleCircuits:
         alpha = 1.5
         truncation = FockTruncation.all_fock_space([0], {0: 16})
 
-        dev = qml.device("qcvdv.hybrid", truncation=truncation)
+        dev = qml.device("qcvdv.convert", truncation=truncation)
 
         @qml.qnode(dev)
         def circuit(alpha, phi):
@@ -253,7 +253,7 @@ class TestExampleCircuits:
     @pytest.mark.parametrize("n", range(6))
     def test_create_fock_state_analytic(self, n):
         # Creates the state |0,n> through JC gates
-        dev = qml.device("qcvdv.hybrid", wires=[0, "m0"], max_fock_level=8)
+        dev = qml.device("qcvdv.convert", wires=[0, "m0"], max_fock_level=8)
 
         @qml.qnode(dev)
         def circuit():
@@ -268,7 +268,7 @@ class TestExampleCircuits:
         assert np.isclose(expval_z, 1.0)
 
     def test_jc_analytic(self):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=4)
+        dev = qml.device("qcvdv.convert", max_fock_level=4)
 
         @qml.qnode(dev)
         def circuit():
@@ -297,7 +297,7 @@ class TestExampleCircuits:
         assert np.isclose(n3, 2)
 
     def test_jc_analytic_small(self):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=4)
+        dev = qml.device("qcvdv.convert", max_fock_level=4)
 
         @qml.qnode(dev)
         def circuit():
@@ -326,7 +326,7 @@ class TestExampleCircuits:
         lam = np.abs(alpha) ** 2
         truncation = FockTruncation.all_fock_space([0], {0: 16})
 
-        dev = qml.device("qcvdv.hybrid", truncation=truncation)
+        dev = qml.device("qcvdv.convert", truncation=truncation)
 
         @qml.qnode(dev)
         def circuit(alpha):
@@ -339,7 +339,7 @@ class TestExampleCircuits:
         assert np.isclose(n, expval_n + expval_n2)
 
     def test_cv_swap(self):
-        dev = qml.device("qcvdv.hybrid", max_fock_level=16)
+        dev = qml.device("qcvdv.convert", max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit(alpha):
@@ -366,7 +366,7 @@ class TestExampleCircuits:
         lam = np.abs(alpha) ** 2
         truncation = FockTruncation.all_fock_space([0], {0: 16})
 
-        dev = qml.device("qcvdv.hybrid", truncation=truncation)
+        dev = qml.device("qcvdv.convert", truncation=truncation)
 
         @qml.qnode(dev)
         def circuit(alpha):
@@ -387,7 +387,7 @@ class TestExampleCircuits:
         n_per_test = 5000
         repetitions = 10
 
-        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+        dev = qml.device("qcvdv.convert", max_fock_level=fock_levels)
 
         @partial(qml.set_shots, shots=repetitions * n_per_test)
         @qml.qnode(dev)
@@ -422,7 +422,7 @@ class TestExampleCircuits:
     @pytest.mark.parametrize(["wires", "state_index"], [([0, 1], 1), ([1, 0], 2)])
     def test_statevector_with_wire_flips(self, wires, state_index):
         fock_levels = 4
-        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels, wires=2)
+        dev = qml.device("qcvdv.convert", max_fock_level=fock_levels, wires=2)
 
         @qml.qnode(dev)
         def circuit():
@@ -453,7 +453,7 @@ class TestExampleCircuits:
     )
     def test_statevector_with_more_wires(self, wires, state_index):
         fock_levels = 4
-        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels, wires=3)
+        dev = qml.device("qcvdv.convert", max_fock_level=fock_levels, wires=3)
 
         @qml.qnode(dev)
         def circuit():
@@ -485,7 +485,7 @@ class TestExampleCircuitsVSBosonicQiskitDevice:
     def test_displacement_analytic(self):
         fock_levels = 4
         bq_dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
-        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+        dev = qml.device("qcvdv.convert", max_fock_level=fock_levels)
 
         def circuit_back():
             # Put the first subsystem (qubit 0, qumode 1) in state |0>_Q |1>_B

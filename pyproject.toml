@@ -46,7 +46,8 @@ qscout = [
 [project.entry-points."pennylane.plugins"]
 "bosonicqiskit.hybrid" = "hybridlane.devices:BosonicQiskitDevice"
 "sandiaqscout.hybrid" = "hybridlane.devices:QscoutIonTrap"
-"qcvdv.hybrid" = "hybridlane.devices:QCvDvDevice_V1"
+"qcvdv.convert" = "hybridlane.devices:QCvDvDevice_V1"
+"qcvdv.hybrid" = "hybridlane.devices:QCvDvDevice"
 
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]
