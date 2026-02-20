@@ -9,7 +9,7 @@ from pennylane.exceptions import DeviceError
 from pennylane.operation import Operator
 from pennylane.ops.cv import CVOperation
 from pennylane.tape import QuantumScript
-from qcvdv.circuit import HybridCircuit
+from qcvdv.circuit import HybridCircuitV1 as HybridCircuit
 from qcvdv.simulator import HybridSimulator
 from qiskit.quantum_info import Statevector
 from scipy.sparse import SparseEfficiencyWarning
@@ -74,12 +74,11 @@ def make_circuit(
     for wire, dim in regmapper.truncation.dim_sizes.items():
         _logger.debug(f"wire {wire} has dimension {dim})")
 
-    try:
-        qc = HybridCircuit(*regmapper.regs)
-    except ValueError as e:
-        raise DeviceError(
-            "Bosonic qiskit currently doesn't support executing circuits without a qumode."
-        ) from e
+    if [regmapper.qubit_reg] == regmapper.regs:
+        msg = "The circuit only contains qubits. While qcvdv will run, you may want to consider another device."
+        warnings.warn(msg)
+        _logger.warning(msg)
+    qc = HybridCircuit(*regmapper.regs)
 
     for op in tape.operations:
         # Validate that we have actual values in the parameters

@@ -52,8 +52,7 @@ class TestQCvDvDevice:
             hqml.ConditionalDisplacement(1.0, 0, [0, 1])
             return hqml.expval(hqml.NumberOperator(1))
 
-        with pytest.raises(DeviceError):
-            circuit()
+        circuit()
 
     def test_no_inferrable_truncation(self):
         # This circuit has a qumode that should be detected through static analysis,
@@ -79,7 +78,10 @@ class TestQCvDvDevice:
             qml.H(0)
             return hqml.expval(qml.Z(0) @ qml.X(1))
 
-        with pytest.raises(DeviceError):
+        with pytest.warns(
+            UserWarning,
+            match="The circuit only contains qubits. While qcvdv will run, you may want to consider another device.",
+        ):
             circuit()
 
     def test_wires_aliased_by_operation(self):
