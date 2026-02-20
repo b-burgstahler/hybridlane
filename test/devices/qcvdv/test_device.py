@@ -4,6 +4,7 @@
 # See the LICENSE.txt file for full license text.
 import importlib.util
 import sys
+import warnings
 from functools import partial
 from time import time_ns
 
@@ -543,8 +544,8 @@ class TestCircuitCaching:
 
 
 class TestExampleCircuitsVSBosonicQiskitDevice:
-    def test_displacement_analytic(self):
-        fock_levels = 4
+    @pytest.mark.parametrize("fock_levels", (64, 256, 512))
+    def test_sim_speed_difference(self, fock_levels):
         bq_dev = qml.device("bosonicqiskit.hybrid", max_fock_level=fock_levels)
         dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
 
@@ -570,9 +571,18 @@ class TestExampleCircuitsVSBosonicQiskitDevice:
         def circuit():
             return circuit_back()
 
+        start = time_ns()
         bq_state, bq_expval, bq_n1 = bq_circuit()
+        bq_end = time_ns()
         state, expval, n1 = circuit()
+        end = time_ns()
 
         assert np.allclose(state, bq_state)
         assert np.isclose(expval, bq_expval)
         assert np.isclose(n1, bq_n1)
+
+        bq_time = (bq_end - start) / 10**9
+        qcvdv = (end - bq_end) / 10**9
+        ratio = bq_time / qcvdv
+        warnings.warn(f"QCvDv {ratio:.2f}x faster")
+        assert ratio > 1
