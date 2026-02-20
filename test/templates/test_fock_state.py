@@ -17,9 +17,16 @@ class TestFockState:
         op = hqml.FockState(5, [0, 1])
         assert set(op.resource_params.keys()) == op.resource_keys
 
-    @pytest.mark.parametrize("n", range(1, 10, 2))
-    def test_expval(self, n):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=16)
+    @pytest.mark.parametrize(
+        "n, devi",
+        [
+            (n, dev)
+            for n in range(1, 10, 2)
+            for dev in ("bosonicqiskit.hybrid", "qcvdv.hybrid")
+        ],
+    )
+    def test_expval(self, n, devi):
+        dev = qml.device(devi, max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit(n):
@@ -29,9 +36,16 @@ class TestFockState:
         expval = circuit(n)
         assert np.isclose(expval, n)
 
-    @pytest.mark.parametrize("n", range(1, 10, 2))
-    def test_var(self, n):
-        dev = qml.device("bosonicqiskit.hybrid", max_fock_level=16)
+    @pytest.mark.parametrize(
+        "n, devi",
+        [
+            (n, dev)
+            for n in range(1, 10, 2)
+            for dev in ("bosonicqiskit.hybrid", "qcvdv.hybrid")
+        ],
+    )
+    def test_var(self, n, devi):
+        dev = qml.device(devi, max_fock_level=16)
 
         @qml.qnode(dev)
         def circuit(n):
