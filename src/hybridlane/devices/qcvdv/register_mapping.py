@@ -1,11 +1,102 @@
-from ..devices.bosonic_qiskit.register_mapping import (
-    RegisterMapping as bq_RegisterMapping,
-)
+# Copyright (c) 2025, Battelle Memorial Institute
+
+# This software is licensed under the 2-Clause BSD License.
+# See the LICENSE.txt file for full license text.
+from collections import OrderedDict
+from collections.abc import Mapping
+from typing import Hashable
+
+import qiskit as qk
+from pennylane.wires import Wires
+from qcvdv.registers import QumodeRegister
+from qiskit.circuit import Qubit
+
+from ... import sa
+from ...measurements import FockTruncation
+
+QumodeType = list[Qubit]
 
 
-class RegisterMapping(bq_RegisterMapping):
-    r"""Utility class to map wires -> qcvdv registers for the qcvdv device"""
+# Todo: Currently this only handles fock truncations because that's what bosonic qiskit does. Should
+# we refactor to use general truncations?
+class RegisterMapping(Mapping):
+    r"""Utility class to map wires -> bosonic qiskit registers"""
 
-    # For now, we can just reuse the same register mapping as the bosonic qiskit device, since the requirements are the same.
-    # However, if we later want to customize this for the qcvdv device, we can do so by overriding the methods of the bosonic qiskit RegisterMapping class here.
-    # TODO: chat with srikar about the details here
+    axes_map: dict[Hashable, tuple[int, ...]]
+
+    def __init__(
+        self,
+        sa_result: sa.StaticAnalysisResult,
+        fock_truncation: FockTruncation,
+    ):
+        self._truncation = fock_truncation
+        self.sa_res = sa_result
+        self.mapping = self._prepare(sa_result)
+
+    def _prepare(
+        self, sa_result: sa.StaticAnalysisResult
+    ) -> OrderedDict[Hashable, Qubit | QumodeType]:
+        mapping = OrderedDict()
+        self.axes_map = {}
+
+        # Put all qubits into the same register
+        self.qubit_reg = qk.QuantumRegister(len(sa_result.qubits), name="q")
+        for i, wire in enumerate(sa_result.qubits):
+            mapping[wire] = self.qubit_reg[i]
+            self.axes_map[wire] = (i,)
+
+        # Here we just make a unique register for each qumode. One could also consider grouping them by
+        # truncation and then putting all qumodes with the same truncation into the same register
+        self.qumode_regs = []
+        total_num_qubits_created = len(self.qubit_reg)
+        for i, wire in enumerate(sa_result.qumodes):
+            try:
+                num_modes = 1
+                dim = self._truncation.dim(wire)
+                qmreg = QumodeRegister(num_modes, name=f"m{i}")
+                qmreg.set_cutoff(0, dim)
+                mapping[wire] = qmreg[0]
+                self.qumode_regs.append(qmreg)
+                self.axes_map[wire] = tuple(
+                    range(
+                        total_num_qubits_created,
+                        total_num_qubits_created + num_modes,
+                    )
+                )
+                total_num_qubits_created += num_modes
+            except KeyError as e:
+                raise RuntimeError(
+                    f"Need to specify a truncation for qumode `{wire}`"
+                ) from e
+
+        return mapping
+
+    @property
+    def wire_order(self):
+        return Wires.all_wires(self.mapping.keys())
+
+    @property
+    def regs(self):
+        return [self.qubit_reg] + self.qumode_regs
+
+    @property
+    def truncation(self):
+        return self._truncation
+
+    def __len__(self):
+        return len(self.mapping)
+
+    def __iter__(self):
+        return iter(self.mapping)
+
+    def __getitem__(
+        self, wire_or_wires: Hashable | Wires
+    ) -> Qubit | QumodeType | list[Qubit | QumodeType]:
+        if isinstance(wire_or_wires, Wires):
+            # Unbatch wires if possible
+            if len(wire_or_wires) == 1:
+                return self.mapping[wire_or_wires[0]]
+
+            return [self.mapping[w] for w in wire_or_wires]
+
+        return self.mapping[wire_or_wires]
