@@ -10,60 +10,18 @@ from pennylane.operation import Operator
 from pennylane.ops.cv import CVOperation
 from pennylane.tape import QuantumScript
 from qcvdv.circuit import HybridCircuitV1 as HybridCircuit
-from qcvdv.simulator import HybridSimulator
-from qiskit.quantum_info import Statevector
-from scipy.sparse import SparseEfficiencyWarning
 
 import hybridlane as hqml
 
 from ... import sa
 from ...measurements import (
     FockTruncation,
-    StateMeasurement,
 )
 from ...ops.mixins import Hybrid
-from ..bosonic_qiskit.simulate import (
-    analytic_measurement,
-)
 from .gates import cv_gate_map, dv_gate_map, hybrid_gate_map, misc_gate_map
 from .register_mapping import RegisterMapping
 
 _logger = logging.getLogger(__name__)
-
-
-def simulate(
-    tape: QuantumScript,
-    truncation: FockTruncation,
-    *,
-    hbar: float,
-    simulator: HybridSimulator,
-) -> tuple[np.ndarray]:
-    warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
-
-    qc, regmapper = make_circuit(tape, truncation)
-
-    if tape.shots and not len(tape.shots.shot_vector) == 1:
-        raise NotImplementedError("Complex shot batching is not yet supported")
-
-    results = []
-    if tape.shots:
-        raise NotImplementedError(
-            "Shot-based measurements are not yet supported for QCvDv"
-        )
-    else:
-        # Compute state once and reuse across measurements to reduce simulation time
-
-        state = simulator.run(qc, shots=1)
-        state = Statevector(state)
-        result = None  # TODO: format this as a qiskit result?
-        for m in tape.measurements:
-            assert isinstance(m, StateMeasurement)
-            results.append(analytic_measurement(m, state, result, regmapper, hbar=hbar))
-
-        if len(tape.measurements) == 1:
-            return results[0]
-
-    return tuple(results)
 
 
 def make_circuit(

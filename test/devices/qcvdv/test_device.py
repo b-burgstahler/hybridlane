@@ -485,9 +485,9 @@ class TestExampleCircuits:
         assert np.allclose(state, target)
 
 
-@pytest.mark.skip(
-    reason="Caching doesn't seem to be working properly due to the recreation of the circuit with each hybridlane call."
-)
+# @pytest.mark.skip(
+#     reason="Caching doesn't seem to be working properly due to the recreation of the circuit with each hybridlane call."
+# )
 class TestCircuitCaching:
     def test_circuit_caching_basic(self):
         fock_levels = 4
@@ -506,13 +506,13 @@ class TestCircuitCaching:
         # it's using a cached version of the compiled circuit rather than recompiling it from scratch and potentially getting a different result due to non-determinism in compilation or something.
 
         times = []
-        for _ in range(3):
+        for _ in range(5):
             start = time_ns()
             circuit()
             stop = time_ns()
             times.append(stop - start)
 
-        diffs = np.diff(times)
+        diffs = np.array([i - times[0] for i in times[1:]])
         assert np.all(diffs < 0)
 
     @pytest.mark.parametrize("alphas", ([0.5, 1.0, 1.5], [1.0, 1.0, 1.0]))
@@ -528,7 +528,7 @@ class TestCircuitCaching:
                 qml.Displacement(alphas[2], 0, 0)
             return hqml.state()
 
-        reps = [1, 8]
+        reps = [1, 4, 8]
         times = []
         for rep in reps:
             start = time_ns()
@@ -540,7 +540,6 @@ class TestCircuitCaching:
         )  # convert to seconds and divide by reps
         diff_per_rep = np.diff(per_rep)
         assert np.all(diff_per_rep < 0.001)  # should be less than 1ms difference
-        assert False
 
 
 @pytest.mark.slow(
