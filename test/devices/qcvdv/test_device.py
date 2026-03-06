@@ -541,6 +541,31 @@ class TestCircuitCaching:
         diff_per_rep = np.diff(per_rep)
         assert np.all(diff_per_rep < 0.001)  # should be less than 1ms difference
 
+    def test_circuit_caching_vqa_like(self):
+        fock_levels = 16
+        dev = qml.device("qcvdv.hybrid", max_fock_level=fock_levels)
+
+        @qml.qnode(dev)
+        def circuit(alphas):
+            for alpha in alphas:
+                qml.Displacement(alpha, 0, 0)
+            return hqml.expval(hqml.NumberOperator(0))
+
+        alphas = np.linspace(0.1, 1.0, 10)
+        alphas = 3 * [alphas.tolist()]
+        times = []
+        alphas[1][5] = 1  # force cache misses on second run.
+        alphas[1][6] = 1
+        for alpha in alphas:
+            start = time_ns()
+            circuit(alpha)
+            stop = time_ns()
+            times.append(stop - start)
+
+        speedups = times[0] / np.array(times)
+        for i, speedup in enumerate(speedups[1:], start=1):
+            assert speedup > 1, f"Run {i} was not faster than the first run"
+
 
 @pytest.mark.slow(
     reason="This is more of a benchmark than a test, it confirms that qcvdv is faster than bosonic-qiskit."
