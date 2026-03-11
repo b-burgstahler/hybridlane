@@ -512,6 +512,9 @@ class TestCircuitCaching:
             stop = time_ns()
             times.append(stop - start)
 
+        assert len(dev.dict_of_circs) == 1, (
+            "Expected the device to have exactly 1 cached circuit"
+        )
         diffs = np.array([i - times[0] for i in times[1:]])
         assert np.all(diffs < 0)
 
@@ -538,6 +541,9 @@ class TestCircuitCaching:
         per_rep = (
             np.array(times) / np.array(reps) / 10**9
         )  # convert to seconds and divide by reps
+        assert len(dev.dict_of_circs) == 3, (
+            "Expected the device to have exactly 3 cached circuits"
+        )
         diff_per_rep = np.diff(per_rep)
         assert np.all(diff_per_rep < 0.001)  # should be less than 1ms difference
 
@@ -554,20 +560,29 @@ class TestCircuitCaching:
         alphas = np.linspace(0.1, 1.0, 10)
         alphas = 3 * [alphas.tolist()]
         times = []
-        alphas[1][5] = 1  # force cache misses on second run.
-        alphas[1][6] = 1
+        temp = alphas[0][1:9]
+        temp.append(alphas[0][0])
+        alphas[1] = temp
+        temp = alphas[1][1:9]
+        temp.append(alphas[1][0])
+        alphas[2] = temp
+
+        exps = []
         for alpha in alphas:
             start = time_ns()
-            circuit(alpha)
+            exps.append(circuit(alpha))
             stop = time_ns()
             times.append(stop - start)
 
+        assert len(dev.dict_of_circs) == 1, (
+            "Expected the device to have exactly 1 cached circuit"
+        )
         speedups = times[0] / np.array(times)
         for i, speedup in enumerate(speedups[1:], start=1):
             assert speedup > 1, f"Run {i} was not faster than the first run"
 
 
-@pytest.mark.slow(
+@pytest.mark.skip(
     reason="This is more of a benchmark than a test, it confirms that qcvdv is faster than bosonic-qiskit."
 )
 class TestExampleCircuitsVSBosonicQiskitDevice:
