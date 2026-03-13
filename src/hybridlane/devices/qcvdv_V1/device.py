@@ -20,7 +20,7 @@ class QCvDvDevice_V1(BosonicQiskitDevice):
         assert self._backend in ("dense", "scipy", "dense_matrix_gpuv1"), (
             "Unsupported backend for QCvDvDevice"
         )
-        self.__simulator = HybridSimulator(method=self._backend)
+        self._simulator = HybridSimulator(method=self._backend)
         super().__init__(*args, **kwargs)
 
     def execute(  # type: ignore
@@ -51,6 +51,6 @@ class QCvDvDevice_V1(BosonicQiskitDevice):
             truncations = [truncation] * len(circuits)
 
         return tuple(
-            simulate(tape, truncation, hbar=self._hbar, simulator=self.__simulator)
+            simulate(tape, truncation, hbar=self._hbar, simulator=self._simulator)
             for tape, truncation in zip(circuits, truncations)
         )

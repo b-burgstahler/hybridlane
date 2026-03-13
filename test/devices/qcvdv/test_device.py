@@ -485,6 +485,34 @@ class TestExampleCircuits:
         assert np.allclose(state, target)
 
 
+class TestBackendOptions:
+    @pytest.mark.parametrize("backend", ("dense", "scipy", "dense_matrix_gpuv1"))
+    def test_good_backends(self, backend):
+        fock_levels = 4
+        dev = qml.device(
+            "qcvdv.hybrid",
+            max_fock_level=fock_levels,
+            backend=backend,
+        )
+        assert dev._backend == backend
+
+        @qml.qnode(dev)
+        def circuit():
+            hqml.FockState(  # set mode to 1 using wire[0] as qubit control and wire[1] as qumode
+                2, [0, 1]
+            )
+            return hqml.state()
+
+        state = circuit()
+        # We can't directly check the hbar value in the simulator, but we can check that the result is consistent with it.
+        # For a coherent state with alpha=1, <p> should be 2*Im(alpha)*hbar, so in this case it should be 0 since alpha is real.
+        assert np.isclose(state[2], 1)
+
+    def test_backend_options_invalid_simulator(self):
+        with pytest.raises(ValueError):
+            qml.device("qcvdv.hybrid", backend="not_a_real_backend")
+
+
 # @pytest.mark.skip(
 #     reason="Caching doesn't seem to be working properly due to the recreation of the circuit with each hybridlane call."
 # )

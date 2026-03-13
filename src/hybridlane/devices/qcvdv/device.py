@@ -24,11 +24,6 @@ class QCvDvDevice(QCvDvDevice_V1):
     author = "b-burgstahler"
 
     def __init__(self, *args, **kwargs):
-        self._backend = kwargs.pop("backend", "dense")
-        assert self._backend in ("dense", "scipy", "dense_matrix_gpuv1"), (
-            "Unsupported backend for QCvDvDevice"
-        )
-        self.__simulator = HybridSimulator(method=self._backend)
         self._dict_of_circs = {}
         super().__init__(*args, **kwargs)
 
@@ -61,7 +56,7 @@ class QCvDvDevice(QCvDvDevice_V1):
 
         return tuple(
             self.__simulate(
-                tape, truncation, hbar=self._hbar, simulator=self.__simulator
+                tape, truncation, hbar=self._hbar, simulator=self._simulator
             )
             for tape, truncation in zip(circuits, truncations)
         )
